@@ -1,0 +1,43 @@
+env: "local" # prod
+
+jwt:
+  app_secret_a: "123" # секретный ключ для шифрования access токенов
+  app_secret_b: "123" # секретный ключ для шифрования refresh токенов
+  access_token_ttl: 15m # время жизни access токена
+  refresh_token_ttl: 720h # время жизни refresh токена
+
+grpc:
+  port: 50051
+  timeout: 5s # время обработки запроса 
+
+POSTGRES:
+  POSTGRES_HOST: localhost
+  POSTGRES_PORT: 5432
+  POSTGRES_USER: "admin"
+  POSTGRES_PASS: "admin"
+  POSTGRES_DB: "test_db"
+  POSTGRES_SSLMODE: disable
+
+  POSTGRES_MAX_CONN: 10
+  POSTGRES_MIN_CONN: 5
+
+minio:
+  MINIO_HOST: localhost
+  MINIO_PORT: 9000
+  MINIO_USER: minio
+  MINIO_PASS: minio123
+  MINIO_BUCKET: user-avatars
+  MINIO_SSLMODE: true
+
+kafka:
+  KAFKA_BROKERS:
+    - "localhost:9092"  # Внутренние адреса брокеров
+    - "localhost:9093"
+    - "localhost:9094"
+  KAFKA_TOPIC: "register"
+
+REDIS:
+  REDIS_HOST: localhost
+  REDIS_PORT: 6379
+  REDIS_PASS: admin
+  REDIS_DB: 1
