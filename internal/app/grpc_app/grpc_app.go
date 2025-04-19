@@ -17,7 +17,7 @@ type App struct {
 	port       int
 }
 
-func New(log *zap.Logger, port int, timeout time.Duration) *App {
+func New(log *zap.Logger, canvasService grpcHandlersCanvas.CanvasService, port int, timeout time.Duration) *App {
 	loggerInterceptor := interceptors.NewLoggerInterceptor(log)
 	timeoutInterceptor := interceptors.NewTimeoutInterceptor(log, timeout)
 
@@ -28,7 +28,7 @@ func New(log *zap.Logger, port int, timeout time.Duration) *App {
 		),
 	)
 
-	grpcHandlersCanvas.Register(grpcServer)
+	grpcHandlersCanvas.Register(grpcServer, canvasService)
 
 	return &App{
 		log:        log,
