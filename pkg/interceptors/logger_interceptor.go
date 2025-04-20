@@ -21,14 +21,14 @@ func (l *LoggerInterceptor) UnaryLoggerInterceptor(ctx context.Context, req any,
 
 	l.log.Info("gRPC request",
 		zap.String("method", info.FullMethod),
-		zap.Any("request", req),
+		// zap.Any("request", req),
 	)
 
 	resp, err := handler(ctx, req)
 
 	l.log.Info("gRPC response",
 		zap.String("method", info.FullMethod),
-		zap.Any("response", resp),
+		// zap.Any("response", resp),
 		zap.Error(err),
 	)
 	return resp, err
