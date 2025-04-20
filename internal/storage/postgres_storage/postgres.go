@@ -87,7 +87,6 @@ func (s *Storage) GetByID(ctx context.Context, canvasID string) (*models.Interna
 		return nil, fmt.Errorf("failed to get canvas: %w", err)
 	}
 
-	// Преобразуем UUID[] → []string
 	memberStrs := make([]string, len(membersIDs))
 	for i, m := range membersIDs {
 		memberStrs[i] = m.String()
@@ -111,11 +110,112 @@ func (s *Storage) SetImageUrl(ctx context.Context, canvasID string, imageURL str
 		return "", fmt.Errorf("invalid canvas UUID: %w", err)
 	}
 
-	// Обновляем поле в базе
-	_, err = s.db.Exec(ctx, `UPDATE canvases SET image = $1 WHERE canvas_id = $2`, imageURL, id)
+	_, err = s.db.Exec(ctx, `
+		UPDATE canvases
+		SET image = $1
+		WHERE canvas_id = $2
+	`, imageURL, id)
 	if err != nil {
 		return "", fmt.Errorf("failed to update image URL: %w", err)
 	}
 
 	return imageURL, nil
+}
+
+func (s *Storage) GetByIDs(ctx context.Context, canvasIDs []string) ([]*models.InternalCanvas, error) {
+	var canvases []*models.InternalCanvas
+
+	ids := make([]uuid.UUID, 0, len(canvasIDs))
+	for _, id := range canvasIDs {
+		iID, err := uuid.Parse(id)
+		if err != nil {
+			return nil, fmt.Errorf("invalid canvas UUID: %w", err)
+		}
+		ids = append(ids, iID)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT canvas_id, name, width, height, owner_id, members_ids, privacy, image
+		FROM canvases
+		WHERE canvas_id = ANY($1)
+	`, ids)
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+			case "22P02":
+				return nil, fmt.Errorf("invalid input syntax for UUID: %w", err)
+			default:
+				return nil, fmt.Errorf("pg error while getting canvases: %w", err)
+			}
+		}
+		return nil, fmt.Errorf("failed to get canvases: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var (
+			canvasID   uuid.UUID
+			name       string
+			width      int32
+			height     int32
+			ownerID    uuid.UUID
+			membersIDs []uuid.UUID
+			privacy    string
+			imageURL   string
+		)
+
+		if err := rows.Scan(&canvasID, &name, &width, &height, &ownerID, &membersIDs, &privacy, &imageURL); err != nil {
+			return nil, fmt.Errorf("failed to scan canvas: %w", err)
+		}
+
+		memberStrs := make([]string, len(membersIDs))
+		for i, m := range membersIDs {
+			memberStrs[i] = m.String()
+		}
+
+		canvases = append(canvases, &models.InternalCanvas{
+			ID:         canvasID.String(),
+			Name:       name,
+			Width:      width,
+			Height:     height,
+			OwnerID:    ownerID.String(),
+			MembersIDs: memberStrs,
+			Privacy:    privacy,
+			ImageURL:   imageURL,
+		})
+	}
+
+	return canvases, nil
+}
+
+func (s *Storage) Update(ctx context.Context, canvasID string, name string, privacy string) (string, error) {
+	id, err := uuid.Parse(canvasID)
+	if err != nil {
+		return "", fmt.Errorf("invalid canvas UUID: %w", err)
+	}
+
+	_, err = s.db.Exec(ctx, `
+		UPDATE canvases
+		SET name = $1, privacy = $2
+		WHERE canvas_id = $3
+	`, name, privacy, id)
+	if err != nil {
+		return "", fmt.Errorf("failed to update canvas: %w", err)
+	}
+
+	return canvasID, nil
+}
+
+func (s *Storage) Delete(ctx context.Context, canvasID string) (string, error) {
+	id, err := uuid.Parse(canvasID)
+	if err != nil {
+		return "", fmt.Errorf("invalid canvas UUID: %w", err)
+	}
+
+	_, err = s.db.Exec(ctx, "DELETE FROM canvases WHERE canvas_id = $1", id)
+	if err != nil {
+		return "", fmt.Errorf("failed to delete canvas: %w", err)
+	}
+
+	return canvasID, nil
 }
