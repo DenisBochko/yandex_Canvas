@@ -1,2 +1,121 @@
 package postgresstorage
 
+import (
+	"context"
+	"fmt"
+
+	"github.com/DenisBochko/yandex_Canvas/internal/domain/models"
+	"github.com/DenisBochko/yandex_Canvas/internal/storage"
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
+)
+
+type Storage struct {
+	db *pgxpool.Pool
+}
+
+// Конструктор Storage
+func New(db *pgxpool.Pool) *Storage {
+	return &Storage{db: db}
+}
+
+func (s *Storage) Save(ctx context.Context, canvas models.Canvas) (string, error) {
+	canvasID, err := uuid.Parse(canvas.ID)
+	if err != nil {
+		return "", fmt.Errorf("invalid canvas UUID: %w", err)
+	}
+
+	ownerID, err := uuid.Parse(canvas.OwnerID)
+	if err != nil {
+		return "", storage.ErrInvalidOwnerID
+	}
+
+	membersIDs := make([]uuid.UUID, 0, len(canvas.MembersIDs))
+	for _, idStr := range canvas.MembersIDs {
+		id, err := uuid.Parse(idStr)
+		if err != nil {
+			return "", fmt.Errorf("invalid member UUID: %w", err)
+		}
+		membersIDs = append(membersIDs, id)
+	}
+
+	// сохраняем без картинки, она лежит в MinIO
+	_, err = s.db.Exec(ctx, `
+		INSERT INTO canvases(canvas_id, name, width, height, owner_id, members_ids, privacy, image)
+		VALUES($1, $2, $3, $4, $5, $6, $7, $8)
+	`, canvasID, canvas.Name, canvas.Width, canvas.Height, ownerID, membersIDs, canvas.Privacy, "") // image = ""
+
+	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			switch pgErr.Code {
+			case "23505":
+				return "", storage.ErrCanvasExists
+			default:
+				return "", fmt.Errorf("failed to save canvas: %w", err)
+			}
+		}
+		return "", fmt.Errorf("failed to execute insert: %w", err)
+	}
+
+	return canvas.ID, nil
+}
+
+func (s *Storage) GetByID(ctx context.Context, canvasID string) (*models.InternalCanvas, error) {
+	id, err := uuid.Parse(canvasID)
+	if err != nil {
+		return nil, storage.ErrInvalidCanvasID
+	}
+
+	var (
+		name       string
+		width      int32
+		height     int32
+		ownerID    uuid.UUID
+		membersIDs []uuid.UUID
+		privacy    string
+		image      string
+	)
+
+	err = s.db.QueryRow(ctx, `
+		SELECT name, width, height, owner_id, members_ids, privacy, image
+		FROM canvases
+		WHERE canvas_id = $1
+	`, id).Scan(&name, &width, &height, &ownerID, &membersIDs, &privacy, &image)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to get canvas: %w", err)
+	}
+
+	// Преобразуем UUID[] → []string
+	memberStrs := make([]string, len(membersIDs))
+	for i, m := range membersIDs {
+		memberStrs[i] = m.String()
+	}
+
+	return &models.InternalCanvas{
+		ID:         canvasID,
+		Name:       name,
+		Width:      width,
+		Height:     height,
+		OwnerID:    ownerID.String(),
+		MembersIDs: memberStrs,
+		Privacy:    privacy,
+		ImageURL:   image,
+	}, nil
+}
+
+func (s *Storage) SetImageUrl(ctx context.Context, canvasID string, imageURL string) (string, error) {
+	id, err := uuid.Parse(canvasID)
+	if err != nil {
+		return "", fmt.Errorf("invalid canvas UUID: %w", err)
+	}
+
+	// Обновляем поле в базе
+	_, err = s.db.Exec(ctx, `UPDATE canvases SET image = $1 WHERE canvas_id = $2`, imageURL, id)
+	if err != nil {
+		return "", fmt.Errorf("failed to update image URL: %w", err)
+	}
+
+	return imageURL, nil
+}

@@ -2,9 +2,11 @@ package canvas
 
 import (
 	"context"
+	"errors"
 	"slices"
 
 	"github.com/DenisBochko/yandex_Canvas/internal/domain/models"
+	"github.com/DenisBochko/yandex_Canvas/internal/storage"
 	canavasv1 "github.com/DenisBochko/yandex_contracts/gen/go/canvas"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -16,7 +18,7 @@ import (
 
 type CanvasService interface {
 	CreateCanvas(ctx context.Context, name string, width int32, height int32, ownerID string, privacy string) (string, error) // возвращает id созданного канваса
-	GetCanvasById(ctx context.Context, id string) (models.Canvas, error)
+	GetCanvasById(ctx context.Context, canvasID string) (*models.Canvas, error)
 	GetCanvases(ctx context.Context, canvasIDs []string) ([]models.Canvas, error)
 	UploadImage(ctx context.Context, canvasID string, image []byte) (string, error) // возвращает id загруженного изображения
 
@@ -66,6 +68,9 @@ func (c *CanvasServer) CreateCanvas(ctx context.Context, req *canavasv1.CreateCa
 	)
 
 	if err != nil {
+		if errors.Is(err, storage.ErrInvalidOwnerID) {
+			return nil, status.Error(codes.InvalidArgument, "invalid owner UUID")
+		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
@@ -139,7 +144,7 @@ func (c *CanvasServer) UploadImage(ctx context.Context, req *canavasv1.UploadIma
 
 	canvasID, err := c.canvasService.UploadImage(ctx, req.GetCanvasId(), req.GetImage())
 	if err != nil {
-		return nil, status.Error(codes.Internal, "internal error")
+		return nil, err
 	}
 
 	return &canavasv1.UploadImageResponse{

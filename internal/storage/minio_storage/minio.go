@@ -22,12 +22,15 @@ func New(minioClient *minio.Client, bucketName string) *MinioStorage {
 }
 
 // SaveCanvas сохраняет canvas в MinIO
-func (s *MinioStorage) SaveCanvas(ctx context.Context, canvasID string, imageData []byte) error {
+func (s *MinioStorage) SaveCanvas(ctx context.Context, canvasID string, imageData []byte) (string, error) {
 	objectName := fmt.Sprintf("%s.png", canvasID)
 	_, err := s.minioClient.PutObject(ctx, s.bucketName, objectName, bytes.NewReader(imageData), int64(len(imageData)), minio.PutObjectOptions{
 		ContentType: "image/png",
 	})
-	return err
+
+	url := fmt.Sprintf("%s/%s/%s", s.minioClient.EndpointURL(), s.bucketName, objectName)
+	
+	return url, err
 }
 
 // GetCanvas получает canvas по ID
