@@ -4,6 +4,8 @@ import (
 	"flag"
 	"os"
 	"time"
+
+	"github.com/DenisBochko/yandex_Canvas/pkg/kafka"
 	"github.com/DenisBochko/yandex_Canvas/pkg/minio"
 	"github.com/DenisBochko/yandex_Canvas/pkg/postgres"
 
@@ -11,15 +13,16 @@ import (
 )
 
 type Config struct {
-	Env      string                     `yaml:"env" env-default:"local"`
-	Jwt      JwtConfig                  `yaml:"jwt"`
-	GRPC     GRPCConfig                 `yaml:"grpc"`
-	Postgres postgres.PostgresCfg       `yaml:"POSTGRES"`
-	Minio    minio.MinioConfig          `yaml:"MINIO"`
+	Env      string               `yaml:"env" env-default:"local"`
+	Jwt      JwtConfig            `yaml:"jwt"`
+	GRPC     GRPCConfig           `yaml:"grpc"`
+	Postgres postgres.PostgresCfg `yaml:"POSTGRES"`
+	Minio    minio.MinioConfig    `yaml:"MINIO"`
+	Kafka    kafka.KafkaConfig    `yaml:"KAFKA"`
 }
 
 type JwtConfig struct {
-	AppSecretAccessToken  string        `yaml:"app_secret_a" env-required:"true"`
+	AppSecretAccessToken string `yaml:"app_secret_a" env-required:"true"`
 }
 
 type GRPCConfig struct {

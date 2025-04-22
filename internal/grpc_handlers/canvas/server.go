@@ -7,7 +7,7 @@ import (
 
 	"github.com/DenisBochko/yandex_Canvas/internal/domain/models"
 	"github.com/DenisBochko/yandex_Canvas/internal/storage"
-	canavasv1 "github.com/DenisBochko/yandex_contracts/gen/go/canvas"
+	canavasv1 "gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts/gen/go/canvas"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -18,17 +18,20 @@ import (
 
 type CanvasService interface {
 	CreateCanvas(ctx context.Context, name string, width int32, height int32, ownerID string, privacy string) (string, error) // возвращает id созданного канваса
+
 	GetCanvasById(ctx context.Context, canvasID string) (*models.Canvas, error)
+	GetCanvasByIdNoImage(ctx context.Context, canvasID string) (*models.Canvas, error)
 	GetCanvases(ctx context.Context, canvasIDs []string) ([]models.Canvas, error)
+	GetCanvasesNoImage(ctx context.Context, canvasIDs []string) ([]models.Canvas, error)
+
 	UploadImage(ctx context.Context, canvasID string, image []byte) (string, error) // возвращает id загруженного изображения
 
 	// Одобрение по почте (отправляем owner`у на почту)
 	JoinToCanvas(ctx context.Context, canvasID string, userID string) (string, error) // возвращает id канваса
-
 	AddToWhiteList(ctx context.Context, canvasID string, userID string) (string, error)             // возвращает id канваса
+
 	UpdateCanvas(ctx context.Context, canvasID string, name string, privacy string) (string, error) // возвращает id обновлённого канваса
 	DeleteCanvas(ctx context.Context, canvasID string) (string, error)                              // возвращает id удалённого канваса
-	// GetWhiteList(ctx context.Context, canvasID string) ([]string, error)                         // возвращает id пользователей, которые могут редактировать канвас
 }
 
 const (
@@ -84,7 +87,7 @@ func (c *CanvasServer) GetCanvasById(ctx context.Context, req *canavasv1.GetCanv
 		return nil, status.Error(codes.InvalidArgument, "canvasID is required")
 	}
 
-	canvas, err := c.canvasService.GetCanvasById(ctx, req.GetCanvasId())
+	canvas, err := c.canvasService.GetCanvasByIdNoImage(ctx, req.GetCanvasId())
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal error")
 	}
@@ -98,8 +101,43 @@ func (c *CanvasServer) GetCanvasById(ctx context.Context, req *canavasv1.GetCanv
 			OwnerId:    canvas.OwnerID,
 			MembersIds: canvas.MembersIDs,
 			Privacy:    canvas.Privacy,
-			Image:      canvas.Image,
 		},
+	}, nil
+}
+
+func (c *CanvasServer) GetImageById(ctx context.Context, req *canavasv1.GetImageByIdRequest) (*canavasv1.GetImageByIdResponse, error) {
+	if req.GetCanvasId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "canvasID is required")
+	}
+
+	canvas, err := c.canvasService.GetCanvasById(ctx, req.GetCanvasId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &canavasv1.GetImageByIdResponse{
+		Image: canvas.Image,
+	}, nil
+}
+
+func (c *CanvasServer) GetImageByIds(ctx context.Context, req *canavasv1.GetImageByIdsRequest) (*canavasv1.GetImageByIdsResponse, error) {
+	if len(req.GetCanvasIds()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "canvasIDs is required")
+	}
+
+	canvases, err := c.canvasService.GetCanvases(ctx, req.CanvasIds)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	var imagesResponse [][]byte
+
+	for _, image := range canvases {
+		imagesResponse = append(imagesResponse, image.Image)
+	}
+
+	return &canavasv1.GetImageByIdsResponse{
+		Images: imagesResponse,
 	}, nil
 }
 
@@ -108,7 +146,7 @@ func (c *CanvasServer) GetCanvases(ctx context.Context, req *canavasv1.GetCanvas
 		return nil, status.Error(codes.InvalidArgument, "canvasIDs is required")
 	}
 
-	canvases, err := c.canvasService.GetCanvases(ctx, req.CanvasIds)
+	canvases, err := c.canvasService.GetCanvasesNoImage(ctx, req.CanvasIds)
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal error")
 	}
@@ -124,7 +162,6 @@ func (c *CanvasServer) GetCanvases(ctx context.Context, req *canavasv1.GetCanvas
 			OwnerId:    canvas.OwnerID,
 			MembersIds: canvas.MembersIDs,
 			Privacy:    canvas.Privacy,
-			Image:      canvas.Image,
 		})
 	}
 
@@ -228,7 +265,3 @@ func (c *CanvasServer) DeleteCanvas(ctx context.Context, req *canavasv1.DeleteCa
 		CanvasId: canvasID,
 	}, nil
 }
-
-// func (s *Server) GetWhiteList(ctx context.Context, req *canavasv1.GetWhiteListRequest) (*canavasv1.GetWhiteListResponse, error) {
-// 	return nil, errors.New("not implemented")
-// }

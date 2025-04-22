@@ -8,6 +8,8 @@ import (
 	"github.com/DenisBochko/yandex_Canvas/internal/services/canvas"
 	miniostorage "github.com/DenisBochko/yandex_Canvas/internal/storage/minio_storage"
 	postgresstorage "github.com/DenisBochko/yandex_Canvas/internal/storage/postgres_storage"
+	"github.com/DenisBochko/yandex_Canvas/internal/transport"
+	"github.com/DenisBochko/yandex_Canvas/pkg/kafka"
 	"github.com/DenisBochko/yandex_Canvas/pkg/minio"
 	"github.com/DenisBochko/yandex_Canvas/pkg/postgres"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -23,7 +25,7 @@ type App struct {
 func New(ctx context.Context, log *zap.Logger, cfg *config.Config) *App {
 	// ======= Экземпляры клиентов =======
 
-	// Создаём новый экземпляр подключения к бд
+	// Создаём экземпляр подключения к бд
 	conn, err := postgres.New(ctx, cfg.Postgres)
 
 	if err != nil {
@@ -36,10 +38,17 @@ func New(ctx context.Context, log *zap.Logger, cfg *config.Config) *App {
 		return nil
 	}
 
-	// Создаём новый экземпляр minIO клиента
+	// Создаём экземпляр minIO клиента
 	minioClient, err := minio.New(ctx, log, cfg.Minio)
 	if err != nil {
 		log.Info("failed to connect to minIO", zap.Error(err))
+		return nil
+	}
+
+	// Создаём экземпляр Kafka клиента
+	kafkaProducer, err := kafka.NewSyncProducer(ctx, log, cfg.Kafka)
+	if err != nil {
+		log.Info("failed to connect to kafka", zap.Error(err))
 		return nil
 	}
 
@@ -51,8 +60,11 @@ func New(ctx context.Context, log *zap.Logger, cfg *config.Config) *App {
 	// Создаём экземпляр minio storage
 	minioStorage := miniostorage.New(minioClient, cfg.Minio.Bucket)
 
+	// Создаём экэемпляр kafka transport
+	kafkaTransport := transport.New(log, kafkaProducer, cfg.Kafka.Topic)
+
 	// Создаём экземпляр canvas service
-	canvasService := canvas.New(postgresStorage, minioStorage)
+	canvasService := canvas.New(postgresStorage, minioStorage, kafkaTransport)
 
 	grpcapp := grpcapp.New(log, canvasService, cfg.GRPC.Port, cfg.GRPC.Timeout)
 
@@ -66,6 +78,6 @@ func New(ctx context.Context, log *zap.Logger, cfg *config.Config) *App {
 func (a *App) Stop() {
 	a.GRPCServer.Stop()
 
-	a.log.Info("stopping database connection")
+	a.log.Info("Stopping database connection")
 	a.dbConn.Close()
 }

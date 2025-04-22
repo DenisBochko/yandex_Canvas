@@ -28,15 +28,21 @@ type postgresStorage interface {
 	Delete(ctx context.Context, canvasID string) (string, error)
 }
 
+type kafkaTransport interface {
+	SendVerificationUserMessage(ctx context.Context, message models.AddToWhiteListMessage) error
+}
+
 type CanvasService struct {
 	minioStorage    minioStorage
 	postgresStorage postgresStorage
+	kafkaTransport  kafkaTransport
 }
 
-func New(postgresStorage postgresStorage, minioStorage minioStorage) *CanvasService {
+func New(postgresStorage postgresStorage, minioStorage minioStorage, kafkaTransport kafkaTransport) *CanvasService {
 	return &CanvasService{
 		minioStorage:    minioStorage,
 		postgresStorage: postgresStorage,
+		kafkaTransport:  kafkaTransport,
 	}
 }
 
@@ -84,6 +90,23 @@ func (c *CanvasService) GetCanvasById(ctx context.Context, canvasID string) (*mo
 	}, nil
 }
 
+func (c *CanvasService) GetCanvasByIdNoImage(ctx context.Context, canvasID string) (*models.Canvas, error) {
+	internalCanvas, err := c.postgresStorage.GetByID(ctx, canvasID)
+	if err != nil {
+		return nil, nil
+	}
+
+	return &models.Canvas{
+		ID:         internalCanvas.ID,
+		Name:       internalCanvas.Name,
+		Width:      internalCanvas.Width,
+		Height:     internalCanvas.Height,
+		MembersIDs: internalCanvas.MembersIDs,
+		Privacy:    internalCanvas.Privacy,
+		Image:      []byte{}, // Затычка, т.к. функция не ходит в minio для получение самого канваса
+	}, nil
+}
+
 func (c *CanvasService) GetCanvases(ctx context.Context, canvasIDs []string) ([]models.Canvas, error) {
 	internalCanvases, err := c.postgresStorage.GetByIDs(ctx, canvasIDs)
 	if err != nil {
@@ -112,6 +135,32 @@ func (c *CanvasService) GetCanvases(ctx context.Context, canvasIDs []string) ([]
 
 	return canvases, nil
 }
+
+func (c *CanvasService) GetCanvasesNoImage(ctx context.Context, canvasIDs []string) ([]models.Canvas, error) {
+	internalCanvases, err := c.postgresStorage.GetByIDs(ctx, canvasIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	var canvases []models.Canvas
+
+	for _, canvas := range internalCanvases {
+		canvases = append(canvases, models.Canvas{
+			ID:         canvas.ID,
+			Name:       canvas.Name,
+			Width:      canvas.Width,
+			Height:     canvas.Height,
+			OwnerID:    canvas.OwnerID,
+			MembersIDs: canvas.MembersIDs,
+			Privacy:    canvas.Privacy,
+			Image:      []byte{}, // Затычка, т.к. функция не ходит в minio для получение самого канваса
+		})
+	}
+
+	return canvases, nil
+}
+
+
 
 func (c *CanvasService) UploadImage(ctx context.Context, canvasID string, image []byte) (string, error) {
 	// Сохраняем в minio
@@ -161,7 +210,3 @@ func (c *CanvasService) DeleteCanvas(ctx context.Context, canvasID string) (stri
 
 	return id, nil
 }
-
-// func (c *CanvasService) GetWhiteList(ctx context.Context, canvasID string) ([]string, error) {
-// 	return []string{}, nil
-// }

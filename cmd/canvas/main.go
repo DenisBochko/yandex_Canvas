@@ -31,9 +31,9 @@ func main() {
 	// graceful shutdown
 	// Ожидаем сигнал завершения
 	<-ctx.Done()
-	logger.Info("Stopping SSO service...")
+	logger.Info("Stopping Canvas service...")
 
 	application.Stop()
 
-	logger.Info("SSO service stopped")
+	logger.Info("Canvas service stopped")
 }
