@@ -277,6 +277,16 @@ func (c *CanvasServer) AddToWhiteList(ctx context.Context, req *canavasv1.AddToW
 }
 
 func (c *CanvasServer) UpdateCanvas(ctx context.Context, req *canavasv1.UpdateCanvasRequest) (*canavasv1.UpdateCanvasResponse, error) {
+	// user id должно совпадать с id owner`а canvas
+	userID, ok := ctx.Value(interceptors.UIDKey).(string)
+	if !ok || userID == "" {
+		return nil, status.Error(codes.Unauthenticated, "user ID or verification info missing")
+	}
+	verified, _ := ctx.Value(interceptors.VerifiedKey).(string)
+	if verified == "false" {
+		return nil, status.Error(codes.Unauthenticated, "user not verified")
+	}
+
 	if req.GetCanvasId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "canvasId is required")
 	}
@@ -285,6 +295,16 @@ func (c *CanvasServer) UpdateCanvas(ctx context.Context, req *canavasv1.UpdateCa
 	}
 	if !slices.Contains([]string{CanvasPrivacyPublic, CanvasPrivacyPrivate, CanvasPrivacyFriends}, req.Privacy) {
 		return nil, status.Error(codes.InvalidArgument, "canvas privacy is not included (public, private, friends)")
+	}
+
+	canvas, err := c.canvasService.GetCanvasByIdNoImage(ctx, req.GetCanvasId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	// Проверка на пса, который хочет от имени owner`а обновить канвас
+	if canvas.OwnerID != userID {
+		return nil, status.Error(codes.Aborted, "only the owner can update a canvas")
 	}
 
 	canvasID, err := c.canvasService.UpdateCanvas(
@@ -303,8 +323,28 @@ func (c *CanvasServer) UpdateCanvas(ctx context.Context, req *canavasv1.UpdateCa
 }
 
 func (c *CanvasServer) DeleteCanvas(ctx context.Context, req *canavasv1.DeleteCanvasRequest) (*canavasv1.DeleteCanvasResponse, error) {
+	// user id должно совпадать с id owner`а canvas
+	userID, ok := ctx.Value(interceptors.UIDKey).(string)
+	if !ok || userID == "" {
+		return nil, status.Error(codes.Unauthenticated, "user ID or verification info missing")
+	}
+	verified, _ := ctx.Value(interceptors.VerifiedKey).(string)
+	if verified == "false" {
+		return nil, status.Error(codes.Unauthenticated, "user not verified")
+	}
+
 	if req.GetCanvasId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "canvasId is required")
+	}
+
+	canvas, err := c.canvasService.GetCanvasByIdNoImage(ctx, req.GetCanvasId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	// Проверка на пса, который хочет от имени owner`а удалить canvas
+	if canvas.OwnerID != userID {
+		return nil, status.Error(codes.Aborted, "only the owner can delete a canvas")
 	}
 
 	canvasID, err := c.canvasService.DeleteCanvas(ctx, req.GetCanvasId())
