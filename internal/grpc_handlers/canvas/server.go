@@ -7,10 +7,10 @@ import (
 
 	"github.com/DenisBochko/yandex_Canvas/internal/domain/models"
 	"github.com/DenisBochko/yandex_Canvas/internal/storage"
+	"github.com/DenisBochko/yandex_Canvas/pkg/interceptors"
 	canavasv1 "gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts/gen/go/canvas"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -240,10 +240,11 @@ func (c *CanvasServer) JoinToCanvas(ctx context.Context, req *canavasv1.JoinToCa
 
 func (c *CanvasServer) AddToWhiteList(ctx context.Context, req *canavasv1.AddToWhiteListRequest) (*canavasv1.AddToWhiteListResponse, error) {
 	// user id должно совпадать с id owner`а canvas, к которому хотим присоедениться
-	userID, verified, ok := extractUserInfo(ctx)
+	userID, ok := ctx.Value(interceptors.UIDKey).(string)
 	if !ok || userID == "" {
 		return nil, status.Error(codes.Unauthenticated, "user ID or verification info missing")
 	}
+	verified, _ := ctx.Value(interceptors.VerifiedKey).(string)
 	if verified == "false" {
 		return nil, status.Error(codes.Unauthenticated, "user not verified")
 	}
@@ -259,7 +260,7 @@ func (c *CanvasServer) AddToWhiteList(ctx context.Context, req *canavasv1.AddToW
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal error")
 	}
-	
+
 	// Проверка на пса, который хочет от имени owner`а добавить человека в участники
 	if canvas.OwnerID != userID {
 		return nil, status.Error(codes.Aborted, "only the owner can add a member")
@@ -314,20 +315,4 @@ func (c *CanvasServer) DeleteCanvas(ctx context.Context, req *canavasv1.DeleteCa
 	return &canavasv1.DeleteCanvasResponse{
 		CanvasId: canvasID,
 	}, nil
-}
-
-func extractUserInfo(ctx context.Context) (uid string, verified string, ok bool) {
-	md, ok := metadata.FromIncomingContext(ctx)
-	if !ok {
-		return "", "", false
-	}
-
-	uids := md.Get("uid")
-	verifieds := md.Get("verified")
-
-	if len(uids) == 0 || len(verifieds) == 0 {
-		return "", "", false
-	}
-
-	return uids[0], verifieds[0], true
 }

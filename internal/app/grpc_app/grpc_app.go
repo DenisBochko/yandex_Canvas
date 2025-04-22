@@ -25,6 +25,7 @@ func New(log *zap.Logger, canvasService grpcHandlersCanvas.CanvasService, port i
 		grpc.ChainUnaryInterceptor(
 			loggerInterceptor.UnaryLoggerInterceptor,
 			timeoutInterceptor.UnaryTimeoutInterceptor,
+			interceptors.UnaryAuthInterceptor,
 		),
 	)
 
