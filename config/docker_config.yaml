@@ -1,17 +1,14 @@
-env: "prod"  # или "prod" для продакшена
+env: "prod" # prod
 
 jwt:
-  app_secret_a: "1YAJoxPSVW-W26tGD4x3WRCBW3-px2PQfUbZqzR8YC8"
-  app_secret_b: "1YAJoxPSVW-W26tGD4x3WRCBW3-px2PQfUbZqzR8YC8"
-  access_token_ttl: "15m"
-  refresh_token_ttl: "720h"
+  app_secret_a: "1YAJoxPSVW-W26tGD4x3WRCBW3-px2PQfUbZqzR8YC8" # секретный ключ для дешифрования access токенов
 
 grpc:
   port: 50051
-  timeout: "5s"
+  timeout: "5s" # время обработки запроса 
 
 POSTGRES:
-  POSTGRES_HOST: database  # Имя сервиса в Docker Compose
+  POSTGRES_HOST: database_Canvas  # Имя сервиса в Docker Compose
   POSTGRES_PORT: 5432
   POSTGRES_USER: "admin"
   POSTGRES_PASS: "admin"
@@ -21,11 +18,11 @@ POSTGRES:
   POSTGRES_MIN_CONN: 5
 
 MINIO:
-  MINIO_HOST: minio  # Имя сервиса в Docker Compose
+  MINIO_HOST: minio # Имя сервиса в Docker Compose
   MINIO_PORT: 9000
   MINIO_USER: "minio"
   MINIO_PASS: "minio123"
-  MINIO_BUCKET: "user-avatars"
+  MINIO_BUCKET: "canvases"
   MINIO_SSLMODE: true
 
 KAFKA:
@@ -33,10 +30,4 @@ KAFKA:
     - "kafka1:19092"
     - "kafka2:19093"
     - "kafka3:19094"
-  KAFKA_TOPIC: "register"
-
-REDIS:
-  REDIS_HOST: redis
-  REDIS_PORT: 6379
-  REDIS_PASS: "admin"
-  REDIS_DB: 1
+  KAFKA_TOPIC: "joinToCanvas"
