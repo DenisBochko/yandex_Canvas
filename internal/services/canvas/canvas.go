@@ -87,6 +87,7 @@ func (c *CanvasService) GetCanvasById(ctx context.Context, canvasID string) (*mo
 		Name:       internalCanvas.Name,
 		Width:      internalCanvas.Width,
 		Height:     internalCanvas.Height,
+		OwnerID:    internalCanvas.OwnerID,
 		MembersIDs: internalCanvas.MembersIDs,
 		Privacy:    internalCanvas.Privacy,
 		Image:      canvasImage,
@@ -104,6 +105,7 @@ func (c *CanvasService) GetCanvasByIdNoImage(ctx context.Context, canvasID strin
 		Name:       internalCanvas.Name,
 		Width:      internalCanvas.Width,
 		Height:     internalCanvas.Height,
+		OwnerID:    internalCanvas.OwnerID,
 		MembersIDs: internalCanvas.MembersIDs,
 		Privacy:    internalCanvas.Privacy,
 		Image:      []byte{}, // Затычка, т.к. функция не ходит в minio для получение самого канваса

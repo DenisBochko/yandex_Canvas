@@ -255,6 +255,16 @@ func (c *CanvasServer) AddToWhiteList(ctx context.Context, req *canavasv1.AddToW
 		return nil, status.Error(codes.InvalidArgument, "memberId is required")
 	}
 
+	canvas, err := c.canvasService.GetCanvasByIdNoImage(ctx, req.GetCanvasId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+	
+	// Проверка на пса, который хочет от имени owner`а добавить человека в участники
+	if canvas.OwnerID != userID {
+		return nil, status.Error(codes.Aborted, "only the owner can add a member")
+	}
+
 	canvasID, err := c.canvasService.AddToWhiteList(ctx, req.GetCanvasId(), req.GetMemberId())
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal error")
