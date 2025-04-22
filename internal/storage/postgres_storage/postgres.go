@@ -61,6 +61,65 @@ func (s *Storage) Save(ctx context.Context, canvas models.Canvas) (string, error
 	return canvas.ID, nil
 }
 
+func (s *Storage) GetCanvasesByUserId(ctx context.Context, userID string) ([]*models.InternalCanvas, error) {
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	rows, err := s.db.Query(ctx, `
+		SELECT canvas_id, name, width, height, owner_id, members_ids, privacy, image
+		FROM canvases
+		WHERE owner_id = $1 OR $1 = ANY(members_ids)
+	`, uid)
+	if err != nil {
+		return nil, fmt.Errorf("query error: %w", err)
+	}
+	defer rows.Close()
+
+	var canvases []*models.InternalCanvas
+
+	for rows.Next() {
+		var (
+			canvasID   uuid.UUID
+			name       string
+			width      int32
+			height     int32
+			ownerID    uuid.UUID
+			membersIDs []uuid.UUID
+			privacy    string
+			image      string
+		)
+
+		err := rows.Scan(&canvasID, &name, &width, &height, &ownerID, &membersIDs, &privacy, &image)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan row: %w", err)
+		}
+
+		memberStrs := make([]string, len(membersIDs))
+		for i, m := range membersIDs {
+			memberStrs[i] = m.String()
+		}
+
+		canvases = append(canvases, &models.InternalCanvas{
+			ID:         canvasID.String(),
+			Name:       name,
+			Width:      width,
+			Height:     height,
+			OwnerID:    ownerID.String(),
+			MembersIDs: memberStrs,
+			Privacy:    privacy,
+			ImageURL:   image,
+		})
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows iteration error: %w", err)
+	}
+
+	return canvases, nil
+}
+
 func (s *Storage) GetByID(ctx context.Context, canvasID string) (*models.InternalCanvas, error) {
 	id, err := uuid.Parse(canvasID)
 	if err != nil {

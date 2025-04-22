@@ -23,12 +23,13 @@ type CanvasService interface {
 	GetCanvasByIdNoImage(ctx context.Context, canvasID string) (*models.Canvas, error)
 	GetCanvases(ctx context.Context, canvasIDs []string) ([]models.Canvas, error)
 	GetCanvasesNoImage(ctx context.Context, canvasIDs []string) ([]models.Canvas, error)
+	GetCanvasesByUserId(ctx context.Context, userID string) ([]models.Canvas, error)
 
 	UploadImage(ctx context.Context, canvasID string, image []byte) (string, error) // возвращает id загруженного изображения
 
 	// Одобрение по почте (отправляем owner`у на почту)
-	JoinToCanvas(ctx context.Context, canvasID string, userID string) (string, error) // возвращает id канваса
-	AddToWhiteList(ctx context.Context, canvasID string, userID string) (string, error)             // возвращает id канваса
+	JoinToCanvas(ctx context.Context, canvasID string, userID string) (string, error)   // возвращает id канваса
+	AddToWhiteList(ctx context.Context, canvasID string, userID string) (string, error) // возвращает id канваса
 
 	UpdateCanvas(ctx context.Context, canvasID string, name string, privacy string) (string, error) // возвращает id обновлённого канваса
 	DeleteCanvas(ctx context.Context, canvasID string) (string, error)                              // возвращает id удалённого канваса
@@ -138,6 +139,35 @@ func (c *CanvasServer) GetImageByIds(ctx context.Context, req *canavasv1.GetImag
 
 	return &canavasv1.GetImageByIdsResponse{
 		Images: imagesResponse,
+	}, nil
+}
+
+func (c *CanvasServer) GetCanvasesByUserId(ctx context.Context, req *canavasv1.GetCanvasesByUserIdRequest) (*canavasv1.GetCanvasesByUserIdResponse, error) {
+	if req.GetUserId() == "" {
+		return nil, status.Error(codes.InvalidArgument, "userID is required")
+	}
+
+	canvases, err := c.canvasService.GetCanvasesByUserId(ctx, req.GetUserId())
+	if err != nil {
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	var responseCanvases []*canavasv1.Canvas
+
+	for _, canvas := range canvases {
+		responseCanvases = append(responseCanvases, &canavasv1.Canvas{
+			CanvasId:   canvas.ID,
+			Name:       canvas.Name,
+			Width:      canvas.Width,
+			Height:     canvas.Height,
+			OwnerId:    canvas.OwnerID,
+			MembersIds: canvas.MembersIDs,
+			Privacy:    canvas.Privacy,
+		})
+	}
+
+	return &canavasv1.GetCanvasesByUserIdResponse{
+		Canvases: responseCanvases,
 	}, nil
 }
 

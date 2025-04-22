@@ -22,6 +22,7 @@ type minioStorage interface {
 type postgresStorage interface {
 	Save(ctx context.Context, canvas models.Canvas) (string, error)
 	GetByID(ctx context.Context, canvasID string) (*models.InternalCanvas, error)
+	GetCanvasesByUserId(ctx context.Context, userID string) ([]*models.InternalCanvas, error)
 	SetImageUrl(ctx context.Context, canvasID string, imageURL string) (string, error)
 	GetByIDs(ctx context.Context, canvasIDs []string) ([]*models.InternalCanvas, error)
 	Update(ctx context.Context, canvasID string, name string, privacy string) (string, error)
@@ -160,7 +161,29 @@ func (c *CanvasService) GetCanvasesNoImage(ctx context.Context, canvasIDs []stri
 	return canvases, nil
 }
 
+func (c *CanvasService) GetCanvasesByUserId(ctx context.Context, userID string) ([]models.Canvas, error) {
+	internalCanvases, err := c.postgresStorage.GetCanvasesByUserId(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 
+	var canvases []models.Canvas
+
+	for _, canvas := range internalCanvases {
+		canvases = append(canvases, models.Canvas{
+			ID:         canvas.ID,
+			Name:       canvas.Name,
+			Width:      canvas.Width,
+			Height:     canvas.Height,
+			OwnerID:    canvas.OwnerID,
+			MembersIDs: canvas.MembersIDs,
+			Privacy:    canvas.Privacy,
+			Image:      []byte{}, // Затычка, т.к. функция не ходит в minio для получение самого канваса
+		})
+	}
+
+	return canvases, nil
+}
 
 func (c *CanvasService) UploadImage(ctx context.Context, canvasID string, image []byte) (string, error) {
 	// Сохраняем в minio
