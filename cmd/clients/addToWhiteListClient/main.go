@@ -30,7 +30,7 @@ func main() {
 	// Запрос
 	req := &canavasv1.AddToWhiteListRequest{
 		CanvasId: "f6cfb75f-f00c-46a7-b061-01b853f1bae9",
-		MemberId: "cae633e1-e51e-4d87-9d51-2181e992a255",
+		MemberId: "bd348e82-0967-427a-99fd-c0a301ab47b1",
 	}
 
 	res, err := client.AddToWhiteList(ctx, req)
