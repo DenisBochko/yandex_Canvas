@@ -2,6 +2,7 @@ package canvas
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/DenisBochko/yandex_Canvas/internal/domain/models"
 	"github.com/google/uuid"
@@ -24,13 +25,14 @@ type postgresStorage interface {
 	GetByID(ctx context.Context, canvasID string) (*models.InternalCanvas, error)
 	GetCanvasesByUserId(ctx context.Context, userID string) ([]*models.InternalCanvas, error)
 	SetImageUrl(ctx context.Context, canvasID string, imageURL string) (string, error)
+	AddToWhiteList(ctx context.Context, canvasID string, userID string) (string, error)
 	GetByIDs(ctx context.Context, canvasIDs []string) ([]*models.InternalCanvas, error)
 	Update(ctx context.Context, canvasID string, name string, privacy string) (string, error)
 	Delete(ctx context.Context, canvasID string) (string, error)
 }
 
 type kafkaTransport interface {
-	SendVerificationUserMessage(ctx context.Context, message models.AddToWhiteListMessage) error
+	SendAddToWhiteListMessage(ctx context.Context, message models.AddToWhiteListMessage) error
 }
 
 type CanvasService struct {
@@ -201,12 +203,35 @@ func (c *CanvasService) UploadImage(ctx context.Context, canvasID string, image 
 	return canvasID, nil
 }
 
-func (c *CanvasService) JoinToCanvas(ctx context.Context, canvasID string, userID string) (string, error) {
-	return "", nil
+func (c *CanvasService) JoinToCanvas(ctx context.Context, canvasID string, userID string) (string, error) { // userID - человек, который хочет присодиниться
+	internalCanvas, err := c.postgresStorage.GetByID(ctx, canvasID)
+	if err != nil {
+		return "", err
+	}
+
+	// Собираем сообщение для отправки в kafka
+	message := models.AddToWhiteListMessage{
+		CanvasID:   canvasID,
+		CanvasName: internalCanvas.Name,
+		OwnerID:    internalCanvas.OwnerID,
+		UserId:     userID,
+	}
+
+	// отправляем
+	if err = c.kafkaTransport.SendAddToWhiteListMessage(ctx, message); err != nil {
+		return "", fmt.Errorf("failed to send verification message: %w", err)
+	}
+
+	return canvasID, nil
 }
 
 func (c *CanvasService) AddToWhiteList(ctx context.Context, canvasID string, userID string) (string, error) {
-	return "", nil
+	_, err := c.postgresStorage.AddToWhiteList(ctx, canvasID, userID)
+	if err != nil {
+		return "", err
+	}
+
+	return canvasID, nil
 }
 
 func (c *CanvasService) UpdateCanvas(ctx context.Context, canvasID string, name string, privacy string) (string, error) {

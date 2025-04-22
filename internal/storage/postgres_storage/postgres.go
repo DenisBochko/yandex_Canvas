@@ -278,3 +278,31 @@ func (s *Storage) Delete(ctx context.Context, canvasID string) (string, error) {
 
 	return canvasID, nil
 }
+
+func (s *Storage) AddToWhiteList(ctx context.Context, canvasID string, userID string) (string, error) {
+	cid, err := uuid.Parse(canvasID)
+	if err != nil {
+		return "", fmt.Errorf("invalid canvas ID: %w", err)
+	}
+
+	uid, err := uuid.Parse(userID)
+	if err != nil {
+		return "", fmt.Errorf("invalid user ID: %w", err)
+	}
+
+	sqlResponse, err := s.db.Exec(ctx, `
+		UPDATE canvases
+		SET members_ids = array_append(members_ids, $2)
+		WHERE canvas_id = $1 AND NOT ($2 = ANY(members_ids))
+	`, cid, uid)
+
+	if err != nil {
+		return "", fmt.Errorf("failed to update canvas: %w", err)
+	}
+
+	if sqlResponse.RowsAffected() == 0 {
+		return "", fmt.Errorf("user already in whitelist or canvas not found")
+	}
+
+	return canvasID, nil
+}

@@ -10,6 +10,7 @@ import (
 	canavasv1 "gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts/gen/go/canvas"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
 )
 
@@ -238,6 +239,15 @@ func (c *CanvasServer) JoinToCanvas(ctx context.Context, req *canavasv1.JoinToCa
 }
 
 func (c *CanvasServer) AddToWhiteList(ctx context.Context, req *canavasv1.AddToWhiteListRequest) (*canavasv1.AddToWhiteListResponse, error) {
+	// user id должно совпадать с id owner`а canvas, к которому хотим присоедениться
+	userID, verified, ok := extractUserInfo(ctx)
+	if !ok || userID == "" {
+		return nil, status.Error(codes.Unauthenticated, "user ID or verification info missing")
+	}
+	if verified == "false" {
+		return nil, status.Error(codes.Unauthenticated, "user not verified")
+	}
+
 	if req.GetCanvasId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "canvasId is required")
 	}
@@ -294,4 +304,20 @@ func (c *CanvasServer) DeleteCanvas(ctx context.Context, req *canavasv1.DeleteCa
 	return &canavasv1.DeleteCanvasResponse{
 		CanvasId: canvasID,
 	}, nil
+}
+
+func extractUserInfo(ctx context.Context) (uid string, verified string, ok bool) {
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return "", "", false
+	}
+
+	uids := md.Get("uid")
+	verifieds := md.Get("verified")
+
+	if len(uids) == 0 || len(verifieds) == 0 {
+		return "", "", false
+	}
+
+	return uids[0], verifieds[0], true
 }

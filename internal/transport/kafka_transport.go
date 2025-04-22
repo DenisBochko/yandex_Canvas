@@ -25,7 +25,7 @@ func New(log *zap.Logger, producer sarama.SyncProducer, topic string) *KafkaTran
 	}
 }
 
-func (k *KafkaTransport) SendVerificationUserMessage(ctx context.Context, message models.AddToWhiteListMessage) error {
+func (k *KafkaTransport) SendAddToWhiteListMessage(ctx context.Context, message models.AddToWhiteListMessage) error {
 	messageJson, err := json.Marshal(message)
 
 	if err != nil {
