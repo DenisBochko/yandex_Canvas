@@ -21,7 +21,7 @@ func main() {
 	client := canavasv1.NewCanvasClient(conn)
 
 	ctx := metadata.NewOutgoingContext(context.Background(), metadata.New(map[string]string{
-		"uid":      "a1b2c3d4-e5f6-7890-abcd-1234567890ef",
+		"uid":      "c726593c-b6d6-4bbf-9a01-dd379f62082f",
 		"verified": "true",
 	}))
 	ctx, cancel := context.WithTimeout(ctx, time.Second*5)
@@ -29,8 +29,8 @@ func main() {
 
 	// Запрос
 	req := &canavasv1.AddToWhiteListRequest{
-		CanvasId: "f6cfb75f-f00c-46a7-b061-01b853f1bae9",
-		MemberId: "bd348e82-0967-427a-99fd-c0a301ab47b1",
+		CanvasId: "cd6d6ea9-cb7b-4a84-a2f3-102c16a15754",
+		MemberId: "0c07a36c-1962-40ae-947c-1cb6c8cb7602",
 	}
 
 	res, err := client.AddToWhiteList(ctx, req)

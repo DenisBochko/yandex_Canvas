@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type Canvas struct {
 	ID         string
 	Name       string
@@ -9,6 +11,7 @@ type Canvas struct {
 	MembersIDs []string // ID пользователей, которые имеют доступ к холсту
 	Privacy    string   // приватность канваса (public, private, friends)
 	Image      []byte   // изображение канваса в формате PNG
+	CreatedAt  time.Time
 }
 
 type InternalCanvas struct {
@@ -20,4 +23,5 @@ type InternalCanvas struct {
 	MembersIDs []string // ID пользователей, которые имеют доступ к холсту
 	Privacy    string   // приватность канваса (public, private, friends)
 	ImageURL   string   // изображение канваса в формате PNG
+	CreatedAt  time.Time
 }

@@ -91,6 +91,7 @@ func (c *CanvasService) GetCanvasById(ctx context.Context, canvasID string) (*mo
 		MembersIDs: internalCanvas.MembersIDs,
 		Privacy:    internalCanvas.Privacy,
 		Image:      canvasImage,
+		CreatedAt:  internalCanvas.CreatedAt,
 	}, nil
 }
 
@@ -109,6 +110,7 @@ func (c *CanvasService) GetCanvasByIdNoImage(ctx context.Context, canvasID strin
 		MembersIDs: internalCanvas.MembersIDs,
 		Privacy:    internalCanvas.Privacy,
 		Image:      []byte{}, // Затычка, т.к. функция не ходит в minio для получение самого канваса
+		CreatedAt:  internalCanvas.CreatedAt,
 	}, nil
 }
 
@@ -135,6 +137,7 @@ func (c *CanvasService) GetCanvases(ctx context.Context, canvasIDs []string) ([]
 			MembersIDs: canvas.MembersIDs,
 			Privacy:    canvas.Privacy,
 			Image:      canvasImage,
+			CreatedAt:  canvas.CreatedAt,
 		})
 	}
 
@@ -159,6 +162,7 @@ func (c *CanvasService) GetCanvasesNoImage(ctx context.Context, canvasIDs []stri
 			MembersIDs: canvas.MembersIDs,
 			Privacy:    canvas.Privacy,
 			Image:      []byte{}, // Затычка, т.к. функция не ходит в minio для получение самого канваса
+			CreatedAt:  canvas.CreatedAt,
 		})
 	}
 
@@ -183,6 +187,7 @@ func (c *CanvasService) GetCanvasesByUserId(ctx context.Context, userID string) 
 			MembersIDs: canvas.MembersIDs,
 			Privacy:    canvas.Privacy,
 			Image:      []byte{}, // Затычка, т.к. функция не ходит в minio для получение самого канваса
+			CreatedAt:  canvas.CreatedAt,
 		})
 	}
 

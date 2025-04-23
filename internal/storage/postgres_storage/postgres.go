@@ -3,6 +3,7 @@ package postgresstorage
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/DenisBochko/yandex_Canvas/internal/domain/models"
 	"github.com/DenisBochko/yandex_Canvas/internal/storage"
@@ -68,7 +69,7 @@ func (s *Storage) GetCanvasesByUserId(ctx context.Context, userID string) ([]*mo
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT canvas_id, name, width, height, owner_id, members_ids, privacy, image
+		SELECT canvas_id, name, width, height, owner_id, members_ids, privacy, image, created_at
 		FROM canvases
 		WHERE owner_id = $1 OR $1 = ANY(members_ids)
 	`, uid)
@@ -89,9 +90,10 @@ func (s *Storage) GetCanvasesByUserId(ctx context.Context, userID string) ([]*mo
 			membersIDs []uuid.UUID
 			privacy    string
 			image      string
+			created_at time.Time
 		)
 
-		err := rows.Scan(&canvasID, &name, &width, &height, &ownerID, &membersIDs, &privacy, &image)
+		err := rows.Scan(&canvasID, &name, &width, &height, &ownerID, &membersIDs, &privacy, &image, &created_at)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
@@ -110,6 +112,7 @@ func (s *Storage) GetCanvasesByUserId(ctx context.Context, userID string) ([]*mo
 			MembersIDs: memberStrs,
 			Privacy:    privacy,
 			ImageURL:   image,
+			CreatedAt:  created_at,
 		})
 	}
 
@@ -134,13 +137,14 @@ func (s *Storage) GetByID(ctx context.Context, canvasID string) (*models.Interna
 		membersIDs []uuid.UUID
 		privacy    string
 		image      string
+		createdAt  time.Time
 	)
 
 	err = s.db.QueryRow(ctx, `
-		SELECT name, width, height, owner_id, members_ids, privacy, image
+		SELECT name, width, height, owner_id, members_ids, privacy, image, created_at
 		FROM canvases
 		WHERE canvas_id = $1
-	`, id).Scan(&name, &width, &height, &ownerID, &membersIDs, &privacy, &image)
+	`, id).Scan(&name, &width, &height, &ownerID, &membersIDs, &privacy, &image, &createdAt)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to get canvas: %w", err)
@@ -160,6 +164,7 @@ func (s *Storage) GetByID(ctx context.Context, canvasID string) (*models.Interna
 		MembersIDs: memberStrs,
 		Privacy:    privacy,
 		ImageURL:   image,
+		CreatedAt:  createdAt,
 	}, nil
 }
 
@@ -194,7 +199,7 @@ func (s *Storage) GetByIDs(ctx context.Context, canvasIDs []string) ([]*models.I
 	}
 
 	rows, err := s.db.Query(ctx, `
-		SELECT canvas_id, name, width, height, owner_id, members_ids, privacy, image
+		SELECT canvas_id, name, width, height, owner_id, members_ids, privacy, image, created_at
 		FROM canvases
 		WHERE canvas_id = ANY($1)
 	`, ids)
@@ -221,9 +226,10 @@ func (s *Storage) GetByIDs(ctx context.Context, canvasIDs []string) ([]*models.I
 			membersIDs []uuid.UUID
 			privacy    string
 			imageURL   string
+			created_at time.Time
 		)
 
-		if err := rows.Scan(&canvasID, &name, &width, &height, &ownerID, &membersIDs, &privacy, &imageURL); err != nil {
+		if err := rows.Scan(&canvasID, &name, &width, &height, &ownerID, &membersIDs, &privacy, &imageURL, &created_at); err != nil {
 			return nil, fmt.Errorf("failed to scan canvas: %w", err)
 		}
 
@@ -241,6 +247,7 @@ func (s *Storage) GetByIDs(ctx context.Context, canvasIDs []string) ([]*models.I
 			MembersIDs: memberStrs,
 			Privacy:    privacy,
 			ImageURL:   imageURL,
+			CreatedAt:  created_at,
 		})
 	}
 

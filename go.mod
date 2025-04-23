@@ -7,7 +7,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/minio/minio-go/v7 v7.0.90
-	gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts v0.0.16
+	gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts v0.0.18
 	go.uber.org/zap v1.27.0
 )
 

@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // TOOD: GetWhiteList
@@ -103,6 +104,7 @@ func (c *CanvasServer) GetCanvasById(ctx context.Context, req *canavasv1.GetCanv
 			OwnerId:    canvas.OwnerID,
 			MembersIds: canvas.MembersIDs,
 			Privacy:    canvas.Privacy,
+			CreatedAt:  timestamppb.New(canvas.CreatedAt),
 		},
 	}, nil
 }
@@ -164,6 +166,7 @@ func (c *CanvasServer) GetCanvasesByUserId(ctx context.Context, req *canavasv1.G
 			OwnerId:    canvas.OwnerID,
 			MembersIds: canvas.MembersIDs,
 			Privacy:    canvas.Privacy,
+			CreatedAt:  timestamppb.New(canvas.CreatedAt),
 		})
 	}
 
@@ -193,6 +196,7 @@ func (c *CanvasServer) GetCanvases(ctx context.Context, req *canavasv1.GetCanvas
 			OwnerId:    canvas.OwnerID,
 			MembersIds: canvas.MembersIDs,
 			Privacy:    canvas.Privacy,
+			CreatedAt:  timestamppb.New(canvas.CreatedAt),
 		})
 	}
 
