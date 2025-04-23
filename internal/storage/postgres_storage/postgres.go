@@ -290,6 +290,20 @@ func (s *Storage) AddToWhiteList(ctx context.Context, canvasID string, userID st
 		return "", fmt.Errorf("invalid user ID: %w", err)
 	}
 
+	// Получаем owner_id для проверки, чтобы owner не добавился в members своего же канваса
+	var ownerID uuid.UUID
+	err = s.db.QueryRow(ctx, `
+		SELECT owner_id FROM canvases WHERE canvas_id = $1
+	`, cid).Scan(&ownerID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get owner ID: %w", err)
+	}
+
+	// Проверяем, не совпадает ли userID с ownerID
+	if uid == ownerID {
+		return "", storage.ErrAddOwnerToWhiteList
+	}
+
 	sqlResponse, err := s.db.Exec(ctx, `
 		UPDATE canvases
 		SET members_ids = array_append(members_ids, $2)

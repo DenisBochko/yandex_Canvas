@@ -268,6 +268,9 @@ func (c *CanvasServer) AddToWhiteList(ctx context.Context, req *canavasv1.AddToW
 
 	canvasID, err := c.canvasService.AddToWhiteList(ctx, req.GetCanvasId(), req.GetMemberId())
 	if err != nil {
+		if errors.Is(err, storage.ErrAddOwnerToWhiteList) {
+			return nil, status.Error(codes.InvalidArgument, storage.ErrAddOwnerToWhiteList.Error())
+		}
 		return nil, status.Error(codes.Internal, "internal error")
 	}
 
