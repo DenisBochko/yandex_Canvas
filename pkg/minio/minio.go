@@ -2,6 +2,7 @@ package minio
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/minio/minio-go/v7"
@@ -51,6 +52,31 @@ func New(ctx context.Context, log *zap.Logger, cfg MinioConfig) (*minio.Client, 
 	}
 
 	log.Info("Successfully created minIO", zap.String("bucket", bucketName))
+
+	// Устанавливаем публичную политику
+	publicPolicy := map[string]interface{}{
+		"Version": "2012-10-17",
+		"Statement": []map[string]interface{}{
+			{
+				"Effect":    "Allow",
+				"Principal": "*",
+				"Action":    []string{"s3:GetObject"},
+				"Resource":  fmt.Sprintf("arn:aws:s3:::%s/*", bucketName),
+			},
+		},
+	}
+
+	policyBytes, err := json.Marshal(publicPolicy)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal public bucket policy: %w", err)
+	}
+
+	err = minioClient.SetBucketPolicy(ctx, bucketName, string(policyBytes))
+	if err != nil {
+		return nil, fmt.Errorf("failed to set bucket policy: %w", err)
+	}
+
+	log.Info("Bucket policy set to public", zap.String("bucket", bucketName))
 
 	return minioClient, nil
 }
