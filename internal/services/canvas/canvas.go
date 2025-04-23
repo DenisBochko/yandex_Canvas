@@ -91,6 +91,7 @@ func (c *CanvasService) GetCanvasById(ctx context.Context, canvasID string) (*mo
 		MembersIDs: internalCanvas.MembersIDs,
 		Privacy:    internalCanvas.Privacy,
 		Image:      canvasImage,
+		ImageURL:   internalCanvas.ImageURL,
 		CreatedAt:  internalCanvas.CreatedAt,
 	}, nil
 }

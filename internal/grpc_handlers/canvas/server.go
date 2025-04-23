@@ -120,7 +120,8 @@ func (c *CanvasServer) GetImageById(ctx context.Context, req *canavasv1.GetImage
 	}
 
 	return &canavasv1.GetImageByIdResponse{
-		Image: canvas.Image,
+		Image:    canvas.Image,
+		ImageUrl: canvas.ImageURL,
 	}, nil
 }
 

@@ -7,7 +7,7 @@ require (
 	github.com/golang-migrate/migrate/v4 v4.18.2
 	github.com/jackc/pgx/v5 v5.7.4
 	github.com/minio/minio-go/v7 v7.0.90
-	gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts v0.0.18
+	gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts v0.0.20
 	go.uber.org/zap v1.27.0
 )
 
@@ -57,5 +57,5 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20250115164207-1a7da9e5054f // indirect
 	google.golang.org/grpc v1.71.1
-	google.golang.org/protobuf v1.36.6 // indirect
+	google.golang.org/protobuf v1.36.6
 )
