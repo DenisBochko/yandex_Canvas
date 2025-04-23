@@ -189,7 +189,7 @@ github.com/rcrowley/go-metrics
 # github.com/rs/xid v1.6.0
 ## explicit; go 1.16
 github.com/rs/xid
-# gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts v0.0.18
+# gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts v0.0.20
 ## explicit; go 1.23.1
 gitlab.crja72.ru/golang/2025/spring/course/projects/go6/contracts/gen/go/canvas
 # go.uber.org/atomic v1.7.0
