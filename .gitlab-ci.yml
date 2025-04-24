@@ -13,7 +13,7 @@ before_script:
 
 build:
   stage: build
-  image: golang:1.21
+  image: golang:1.23.1
   script:
     - go mod download
     - mkdir -p bin
