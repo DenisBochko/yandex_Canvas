@@ -86,6 +86,16 @@ func (c *CanvasServer) CreateCanvas(ctx context.Context, req *canavasv1.CreateCa
 }
 
 func (c *CanvasServer) GetCanvasById(ctx context.Context, req *canavasv1.GetCanvasByIdRequest) (*canavasv1.GetCanvasByIdResponse, error) {
+	// user id должно совпадать с либо с owner канваса, либо с участниками
+	userID, ok := ctx.Value(interceptors.UIDKey).(string)
+	if !ok || userID == "" {
+		return nil, status.Error(codes.Unauthenticated, "user ID or verification info missing")
+	}
+	verified, _ := ctx.Value(interceptors.VerifiedKey).(string)
+	if verified == "false" {
+		return nil, status.Error(codes.Unauthenticated, "user not verified")
+	}
+
 	if req.GetCanvasId() == "" {
 		return nil, status.Error(codes.InvalidArgument, "canvasID is required")
 	}
@@ -93,6 +103,25 @@ func (c *CanvasServer) GetCanvasById(ctx context.Context, req *canavasv1.GetCanv
 	canvas, err := c.canvasService.GetCanvasByIdNoImage(ctx, req.GetCanvasId())
 	if err != nil {
 		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	if canvas.Privacy == CanvasPrivacyPublic {
+		return &canavasv1.GetCanvasByIdResponse{
+			Canvas: &canavasv1.Canvas{
+				CanvasId:   canvas.ID,
+				Name:       canvas.Name,
+				Width:      canvas.Width,
+				Height:     canvas.Height,
+				OwnerId:    canvas.OwnerID,
+				MembersIds: canvas.MembersIDs,
+				Privacy:    canvas.Privacy,
+				CreatedAt:  timestamppb.New(canvas.CreatedAt),
+			},
+		}, nil
+	}
+
+	if canvas.OwnerID != userID && (!slices.Contains(canvas.MembersIDs, userID)) {
+		return nil, status.Error(codes.PermissionDenied, "you do not have permission to get this canvas")
 	}
 
 	return &canavasv1.GetCanvasByIdResponse{
@@ -177,6 +206,16 @@ func (c *CanvasServer) GetCanvasesByUserId(ctx context.Context, req *canavasv1.G
 }
 
 func (c *CanvasServer) GetCanvases(ctx context.Context, req *canavasv1.GetCanvasesRequest) (*canavasv1.GetCanvasesResponse, error) {
+	// user id должно совпадать с либо с owner канваса, либо с участниками
+	userID, ok := ctx.Value(interceptors.UIDKey).(string)
+	if !ok || userID == "" {
+		return nil, status.Error(codes.Unauthenticated, "user ID or verification info missing")
+	}
+	verified, _ := ctx.Value(interceptors.VerifiedKey).(string)
+	if verified == "false" {
+		return nil, status.Error(codes.Unauthenticated, "user not verified")
+	}
+
 	if len(req.GetCanvasIds()) == 0 {
 		return nil, status.Error(codes.InvalidArgument, "canvasIDs is required")
 	}
@@ -189,6 +228,12 @@ func (c *CanvasServer) GetCanvases(ctx context.Context, req *canavasv1.GetCanvas
 	var responseCanvases []*canavasv1.Canvas
 
 	for _, canvas := range canvases {
+		if canvas.Privacy != CanvasPrivacyPublic {
+			if canvas.OwnerID != userID && (!slices.Contains(canvas.MembersIDs, userID)) {
+				return nil, status.Error(codes.PermissionDenied, "you do not have permission to get this canvas")
+			}
+		}
+
 		responseCanvases = append(responseCanvases, &canavasv1.Canvas{
 			CanvasId:   canvas.ID,
 			Name:       canvas.Name,
