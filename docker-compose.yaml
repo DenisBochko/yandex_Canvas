@@ -97,7 +97,32 @@ services:
       MINIO_ROOT_USER: minio
       MINIO_ROOT_PASSWORD: minio123
     command: server --console-address ":9001" /data
-  
+
+  canvas-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: canvas-service
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      kafka1:
+        condition: service_started
+      kafka2:
+        condition: service_started
+      kafka3:
+        condition: service_started
+      
+    ports:
+      - "50051:50051"
+    volumes:
+      - ./config:/app/config
+    environment:
+      CONFIG_PATH: /app/config/docker_config.yaml
+    restart: unless-stopped
+
 volumes:
   postgres:
   minio_data:
