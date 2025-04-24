@@ -1,5 +1,6 @@
 stages:
   - build
+  - test
 
 variables:
   GO111MODULE: "on"
@@ -7,9 +8,20 @@ variables:
   GOPRIVATE: "gitlab.crja72.ru"
 
 before_script:
-  # Авторизация для доступа к приватному модулю
   - echo -e "machine gitlab.crja72.ru\nlogin $CI_GITLAB_USER\npassword $CI_GITLAB_TOKEN" > ~/.netrc
   - git config --global url."https://$CI_GITLAB_USER:$CI_GITLAB_TOKEN@gitlab.crja72.ru/".insteadOf "https://gitlab.crja72.ru/"
+
+build:
+  stage: build
+  image: golang:1.21
+  script:
+    - go mod download
+    - mkdir -p bin
+    - go build -o bin/canvas ./cmd/canvas
+  artifacts:
+    paths:
+      - bin/canvas
+    expire_in: 1 day
 
 test:
   stage: test
@@ -23,15 +35,3 @@ test:
       REQUIRED=75.0
       echo "Total coverage: $COVERAGE%"
       awk "BEGIN {exit !($COVERAGE >= $REQUIRED)}"
-
-build:
-  stage: build
-  image: golang:1.21
-  script:
-    - go mod download
-    - mkdir -p bin
-    - go build -o bin/canvas ./cmd/canvas/main.go
-  artifacts:
-    paths:
-      - build/canvas
-    expire_in: 1 day
