@@ -28,8 +28,8 @@ func (s *MinioStorage) SaveCanvas(ctx context.Context, canvasID string, imageDat
 		ContentType: "image/png",
 	})
 
-	url := fmt.Sprintf("%s/%s/%s", s.minioClient.EndpointURL(), s.bucketName, objectName)
-	
+	url := fmt.Sprintf("http://localhost:9000/%s/%s", s.bucketName, objectName)
+
 	return url, err
 }
 
