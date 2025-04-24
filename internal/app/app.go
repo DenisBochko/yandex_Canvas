@@ -58,7 +58,8 @@ func New(ctx context.Context, log *zap.Logger, cfg *config.Config) *App {
 	postgresStorage := postgresstorage.New(conn)
 
 	// Создаём экземпляр minio storage
-	minioStorage := miniostorage.New(minioClient, cfg.Minio.Bucket)
+	wrapper := &miniostorage.MinioClientWrapper{Client: minioClient}
+	minioStorage := miniostorage.New(wrapper, cfg.Minio.Bucket)
 
 	// Создаём экэемпляр kafka transport
 	kafkaTransport := transport.New(log, kafkaProducer, cfg.Kafka.Topic)
